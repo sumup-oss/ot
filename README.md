@@ -83,17 +83,12 @@ end
 
 ```elixir
 
-# Tesla adapter to use in collectors (can different for each collector)
+# Tesla adapter to use in collectors (can be different for each collector)
 # If you use this one, you must add :hackney to your deps
 adapter = {Tesla.Adapter.Hackney, connect_timeout: 5000, recv_timeout: 5000}
 
 config :ot,
   service_name: "my-app",    # (required)
-  http_adapter: {            # (required) tesla adapter used by the collectors
-    Tesla.Adapter.Hackney,
-    connect_timeout: 5000,
-    recv_timeout: 10_000
-  },
   ignored_exceptions: [      # (optional) don't set "error=true" for these
     Phoenix.Router.NoRouteError
   ],
