@@ -127,6 +127,7 @@ defmodule Ot.Client do
     do: :ok
 
   def flush(state) do
+
     headers = [{"content-type", "application/json"}]
     body = Jason.encode!(state.spans)
     Logger.debug(body)

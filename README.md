@@ -9,6 +9,7 @@ Opentracing for elixir applications.
 - [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
   - [Configuration](#configuration)
+- [Plug](#plug)
 - [Module overview](#module-overview)
 - [`Ot` functions](#ot-functions)
     - [`stacks/0`](#stacks0)
@@ -34,15 +35,23 @@ Opentracing for elixir applications.
 <a id="quick-start"></a>
 ## Quick start
 
-Example usage for Phoenix app
+```elixir
+# See "Configuration" section
+Ot.start_link(config)
+
+# See "Ot functions" section
+Ot.start_span("my-test-span", nil)  # <- span is initialized
+Ot.tag("my-tag", "tag-value")       #
+Ot.log("log message")               #
+Ot.end_span()                       # <- span will be sent to jaeger
+```
+
+Example usage in a Phoenix app
 
 In `mix.exs`:
 
 ```elixir
 defp deps do
-  #
-  # use the latest tag in https://github.com/sumup-oss/ot/tags
-  #
   [{:ot, git: "git@github.com:sumup-oss/ot.git", tag: "v1.0.0"}]
 end
 ```
@@ -50,11 +59,13 @@ end
 In `config/dev.exs`:
 
 ```elixir
-config :ot,
+# See "Configuration" section
+config :my_app, :ot_config,
   service_name: "my-app",
   collectors: [
     jaeger: [
       url: "http://127.0.0.1:9411/api/v2/spans",
+      adapter: Tesla.Adapter.Hackney,
       stringify_tags: true
     ]
   ]
@@ -66,30 +77,35 @@ In `application.ex`:
 defmodule MyApp.Application do
   def start(_type, _args) do
     children = [
-      Ot,
-      # ...
+      {Ot, Application.fetch_env!(:my_app, :ot_config)}
+      # ... other children
 ```
 
 In `endpoint.ex`:
 
 ```elixir
 defmodule MyAppWeb.Endpoint do
-  plug Ot.Plug, paths: ["/v0.1/*"]
-end
+  use Phoenix.Endpoint, otp_app: :my_app
+
+  # See "Plug" section
+  plug Ot.Plug
+
+  # ... other plugs
 ```
 
 <a id="configuration"></a>
 ### Configuration
 
-```elixir
+Example with all supported configuration options:
 
+```elixir
 # Tesla adapter to use in collectors (can be different for each collector)
 # If you use this one, you must add :hackney to your deps
 adapter = {Tesla.Adapter.Hackney, connect_timeout: 5000, recv_timeout: 5000}
 
-config :ot,
-  service_name: "my-app",    # (required)
-  ignored_exceptions: [      # (optional) don't set "error=true" for these
+ot_config = [
+  service_name: "my-app",       # (required)
+  ignored_exceptions: [         # (optional) don't set "error=true" for these
     Phoenix.Router.NoRouteError
   ],
   plug: [                                      # (optional) config for Ot.Plug
@@ -102,12 +118,12 @@ config :ot,
   ],
   collectors: [
     jaeger: [
-      url: "...",             # (required) span endpoint (Zipkin JSON v2 format)
-      adapter: tesla_adapter, # (required) tesla adapter to use
-      flush_interval: 500,    # (optional) buffer flush interval in ms; default: 1000
-      flush_retries: 1,       # (optional) flush retry attempts; default: 5 *
-      stringify_tags: true,   # (optional) convert tag values to strings (required for jaeger)
-      middlewares: []         # (optional) Tesla middlewares; default: []
+      url: "...",               # (required) span endpoint (Zipkin JSON v2 format)
+      adapter: tesla_adapter,   # (required) tesla adapter to use
+      flush_interval: 500,      # (optional) buffer flush interval in ms; default: 1000
+      flush_retries: 1,         # (optional) flush retry attempts; default: 5 *
+      stringify_tags: true,     # (optional) convert tag values to strings (required for jaeger)
+      middlewares: []           # (optional) Tesla middlewares; default: []
     ],
     newrelic: [
       url: "https://trace-api.newrelic.com/trace/v1",
@@ -122,9 +138,66 @@ config :ot,
       ]
     ]
   ]
+]
 ```
 
-\* tracing data is stored in a local buffer and sent to the tracing backends (jaeger, zipkin, etc.) in a batch, every X ms. On failure, the buffer is preserved and continues to accumulate spans till the next flush (retry). If the retry limit is exceeded, the buffer is discarded to prevent memory leaks.
+\* tracing data is stored in a local buffer and sent to the tracing backends
+(jaeger, zipkin, etc.) in a batch, every X ms. On failure, the buffer is
+preserved and continues to accumulate spans till the next flush (retry).
+If the retry limit is exceeded, the buffer is discarded to prevent memory leaks.
+
+<a id="plug"></a>
+## Plug
+
+Web applications can use `Ot.Plug` to automatically have a span created for each incoming request.
+
+Let's take a simple ping-pong web app (`GET /ping` returns `pong`):
+
+```elixir
+def MyAppWeb.MyController do
+  def ping(conn, params) do
+    Ot.tag("opponent", params.player)
+    send_resp(conn, 200, "pong")
+  end
+end
+```
+
+Now a simple request:
+```bash
+curl 'http://localhost:4000/v0.1/ping?player=just_me'
+```
+
+will produce this span:
+
+```json
+{
+  "annotations": [],
+  "duration": 1375,
+  "id": "d98f95a2d087a665",
+  "kind": "SERVER",
+  "localEndpoint":
+  {
+    "ipv4": "127.0.0.1",
+    "port": 0,
+    "serviceName": "my-app"
+  },
+  "name": "request",
+  "parentId": null,
+  "tags":
+  {
+    "component": "my-app",
+    "author": "just_me",
+    "http.method": "GET",
+    "http.path": "/v0.1/ping",
+    "http.query_string": "player=just_me",
+    "http.status_code": "200"
+  },
+  "timestamp": 1628150108323753,
+  "traceId": "0a922fbb7df193916b283610bcc516ff"
+}
+```
+
+Note that the values of `ipv4` and `port` are hard-coded (could be made configurable in a later release).
 
 <a id="module-overview"></a>
 ## Module overview

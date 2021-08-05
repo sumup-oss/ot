@@ -11,17 +11,5 @@
 # limitations under the License.
 #
 
-defmodule Ot.Util do
-  def gen_id(bytes) do
-    bytes
-    |> :crypto.strong_rand_bytes()
-    |> Base.encode16(case: :lower)
-  end
-
-  def timestamp(unit \\ :microsecond),
-    do: System.os_time(unit)
-
-  def truncate(nil), do: ""
-  def truncate(msg) when not is_bitstring(msg), do: truncate(inspect(msg))
-  def truncate(msg), do: String.slice(msg, 0, 1000)
-end
+ExUnit.configure(timeout: :infinity)
+ExUnit.start(capture_log: true)
