@@ -82,8 +82,18 @@ end
 ### Configuration
 
 ```elixir
+
+# Tesla adapter to use in collectors (can different for each collector)
+# If you use this one, you must add :hackney to your deps
+adapter = {Tesla.Adapter.Hackney, connect_timeout: 5000, recv_timeout: 5000}
+
 config :ot,
   service_name: "my-app",    # (required)
+  http_adapter: {            # (required) tesla adapter used by the collectors
+    Tesla.Adapter.Hackney,
+    connect_timeout: 5000,
+    recv_timeout: 10_000
+  },
   ignored_exceptions: [      # (optional) don't set "error=true" for these
     Phoenix.Router.NoRouteError
   ],
@@ -97,14 +107,16 @@ config :ot,
   ],
   collectors: [
     jaeger: [
-      url: "...",            # (required) span endpoint (Zipkin JSON v2 format)
-      flush_interval: 500,   # (optional) buffer flush interval in ms; default: 1000
-      flush_retries: 1,      # (optional) flush retry attempts; default: 5 *
-      stringify_tags: true,  # (optional) convert tag values to strings (required for jaeger)
-      middlewares: []        # (optional) Tesla middlewares; default: []
+      url: "...",             # (required) span endpoint (Zipkin JSON v2 format)
+      adapter: tesla_adapter, # (required) tesla adapter to use
+      flush_interval: 500,    # (optional) buffer flush interval in ms; default: 1000
+      flush_retries: 1,       # (optional) flush retry attempts; default: 5 *
+      stringify_tags: true,   # (optional) convert tag values to strings (required for jaeger)
+      middlewares: []         # (optional) Tesla middlewares; default: []
     ],
     newrelic: [
       url: "https://trace-api.newrelic.com/trace/v1",
+      adapter: tesla_adapter,
       middlewares: [
         Tesla.Middleware.Logger,
         {Tesla.Middleware.Headers, [

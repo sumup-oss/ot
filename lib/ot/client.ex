@@ -42,12 +42,10 @@ defmodule Ot.Client do
   @impl true
   def init(opts) do
     middlewares = [{Tesla.Middleware.BaseUrl, Keyword.fetch!(opts, :url)}]
-    adapter = {Tesla.Adapter.Hackney, connect_timeout: 5000, recv_timeout: 10_000}
-
     client =
       Tesla.client(
         middlewares ++ Keyword.get(opts, :middlewares, []),
-        adapter
+        Keyword.fetch!(opts, :adapter)
       )
 
     state = %{
