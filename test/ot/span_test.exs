@@ -37,11 +37,12 @@ defmodule Ot.SpanTest do
     assert <<_::binary-size(32)>> = span.traceId
     assert span.timestamp >= before_timestamp
     assert span.timestamp <= after_timestamp
+
     assert span.localEndpoint == %{
-      serviceName: "test-service",
-      ipv4: "127.0.0.1",
-      port: 0
-    }
+             serviceName: "test-service",
+             ipv4: "127.0.0.1",
+             port: 0
+           }
   end
 
   test "quickstart/4" do

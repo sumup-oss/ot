@@ -120,11 +120,13 @@ defmodule Ot.DispatcherTest do
     :error = MockProcess.proxy(opid, fn -> Dispatcher.start_span("my-span-3") end)
     span4 = MockProcess.proxy(lpid, fn -> Dispatcher.start_span("my-span-4") end)
 
-    # opid failed to create a span
+    # > mpid contains lpid's spans
+    # > opid failed to create a span
+    # > lpid contains no spans, only a "link" to mpid
     assert Dispatcher.stacks() == %{
-      mpid => [span4, span2, span1],  # mpid also contains mpid's spans
-      lpid => mpid                    # lpid is linked to mpid
-    }
+             mpid => [span4, span2, span1],
+             lpid => mpid
+           }
   end
 
   test "log/1" do
@@ -192,5 +194,4 @@ defmodule Ot.DispatcherTest do
   # end
 
   # test "cleanup_stack/3: ignored exception" do
-
 end

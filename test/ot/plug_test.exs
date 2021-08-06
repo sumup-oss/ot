@@ -45,12 +45,13 @@ defmodule Ot.PlugTest do
     assert span.name == "request"
     assert span.parentId == nil
     assert span.kind == "SERVER"
+
     assert span.tags == %{
-      :component => "my-app",
-      "http.method" => "GET",
-      "http.path" => "/foo/bar",
-      "http.query_string" => "baz=0"
-    }
+             :component => "my-app",
+             "http.method" => "GET",
+             "http.path" => "/foo/bar",
+             "http.query_string" => "baz=0"
+           }
 
     send_resp(conn, 200, "OK")
     assert Ot.current_span().tags == Map.put(span.tags, "http.status_code", 200)

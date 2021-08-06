@@ -19,7 +19,7 @@ defmodule OtTest do
   @span_id String.duplicate("f", 16)
 
   setup tags do
-    ot_config =Map.get(tags, :ot_config, [])
+    ot_config = Map.get(tags, :ot_config, [])
     ot_defaults = [service_name: "my-app", collectors: []]
     start_supervised!({Ot, Keyword.merge(ot_defaults, ot_config)})
 
@@ -39,7 +39,8 @@ defmodule OtTest do
 
   test "parse_traceparent/1" do
     assert Ot.parse_traceparent(nil) == nil
+
     assert Ot.parse_traceparent("00-#{@trace_id}-#{@span_id}-00") ==
-      %Ot.Span{id: @span_id, traceId: @trace_id}
+             %Ot.Span{id: @span_id, traceId: @trace_id}
   end
 end

@@ -17,9 +17,9 @@ defmodule Ot.ClientTest do
   alias Ot.Client
   import ExUnit.CaptureLog
 
-
   setup tags do
     config = Map.get(tags, :config, [])
+
     defaults = [
       id: :mock,
       url: "http://localhost",
@@ -53,7 +53,7 @@ defmodule Ot.ClientTest do
     state = :sys.get_state(pid)
 
     assert capture_log(fn -> Client.flush(state) end) =~
-      "Flush failed: the server replied with status 400. Resp body: tesla-error"
+             "Flush failed: the server replied with status 400. Resp body: tesla-error"
 
     fatal_env = %Tesla.Env{status: nil}
     Tesla.Mock.mock(fn %{method: :post, body: ^body} -> fatal_env end)

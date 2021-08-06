@@ -42,6 +42,7 @@ defmodule Ot.Client do
   @impl true
   def init(opts) do
     middlewares = [{Tesla.Middleware.BaseUrl, Keyword.fetch!(opts, :url)}]
+
     client =
       Tesla.client(
         middlewares ++ Keyword.get(opts, :middlewares, []),
@@ -127,7 +128,6 @@ defmodule Ot.Client do
     do: :ok
 
   def flush(state) do
-
     headers = [{"content-type", "application/json"}]
     body = Jason.encode!(state.spans)
     Logger.debug(body)
