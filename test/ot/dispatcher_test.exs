@@ -38,7 +38,7 @@ defmodule Ot.DispatcherTest do
 
   #
   # A simple mock to emulate operating with spans in a separate process
-  # It calls function is given via proxy/1
+  # It just the function given to proxy/1
   #
   defmodule MockProcess do
     use Agent

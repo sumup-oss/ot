@@ -32,6 +32,7 @@ defmodule Ot.Client do
   #
   # [
   #   id: :"ot.client.jaeger",
+  #   adapter: Tesla.Adapter.Hackney,
   #   url: "http://127.0.0.1:9411/api/v2/spans",
   #   flush_interval: 1000,
   #   flush_retries: 1,

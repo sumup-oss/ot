@@ -113,13 +113,13 @@ defmodule Ot.Dispatcher do
   #
   # State:
   # %{
-  #   pid1 => %{root: nil, stack: [1343, 44432, 3315]},
-  #   pid2 => %{root: 44432, stack: [8756, 78659]},
-  #   pid3 => %{root: 78659, stack: [3528]},
-  #   pid4 => pid3,
+  #   pid1 => [1343, 44432, 3315],
+  #   pid2 => [8756, 78659],
+  #   pid3 => pid2,
+  #   pid4 => [542, 23563],
   #   # ...
   # }
-  # (pid4 is a link to pid3: operations in pid4 update the pid3 stack)
+  # (pid3 is a link to pid2: operations in pid3 update the pid2 stack)
 
   @impl true
   def init(opts) do

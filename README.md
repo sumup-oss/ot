@@ -7,6 +7,7 @@ Opentracing for elixir applications.
 <!-- MarkdownTOC -->
 
 - [Prerequisites](#prerequisites)
+- [Installation](#installation)
 - [Quick start](#quick-start)
   - [Configuration](#configuration)
 - [Plug](#plug)
@@ -20,10 +21,23 @@ Opentracing for elixir applications.
 <a id="prerequisites"></a>
 ## Prerequisites
 
-1. You know what [opentracing](https://opentracing.io/docs/overview/) is -- `ot` is a client library for it
+1. You will need a general understanding of opentracing's concepts. You can find a good starting point [here](https://opentracing.io/docs/overview/)
 1. [install](https://elixir-lang.org/install.html) Elixir v1.9 or higher
-1. This project depends on [tesla](https://github.com/teamon/tesla). To use `ot`, you should know about Tesla plugs.
-1. Usage examples for `ot` assume a [Phoenix](https://phoenixframework.org/) web app, you should know how a basic Phoenix app works.
+1. This project depends on [tesla]. Check out their [documentation](https://github.com/teamon/tesla) to learn more about Tesla and how middlewares work there.
+1. Throughout the examples of this readme we have used excerpts of a sample [Phoenix](https://phoenixframework.org/) web app, it is a good idea to get familiar with it first.
+
+<a id="installation"></a>
+## Installation
+
+Add this line to your `mix.exs`:
+
+```elixir
+defp deps do
+  [{:ot, git: "git@github.com:sumup-oss/ot.git", tag: "v1.0.0"}]
+end
+```
+
+Then run `mix deps.get` and you are good to go!
 
 <a id="quick-start"></a>
 ## Quick start
@@ -40,14 +54,6 @@ Ot.end_span()                       # <- span will be sent to jaeger
 ```
 
 Example usage in a Phoenix app
-
-In `mix.exs`:
-
-```elixir
-defp deps do
-  [{:ot, git: "git@github.com:sumup-oss/ot.git", tag: "v1.0.0"}]
-end
-```
 
 In `config/dev.exs`:
 
