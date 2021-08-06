@@ -9,17 +9,11 @@ Opentracing for elixir applications.
 - [Prerequisites](#prerequisites)
 - [Quick start](#quick-start)
   - [Configuration](#configuration)
-- [Module overview](#module-overview)
-- [`Ot` functions](#ot-functions)
-    - [`stacks/0`](#stacks0)
-    - [`start_span/1`](#start_span1)
-    - [`start_span/2`](#start_span2)
-    - [`current_span/0`](#current_span0)
-    - [`end_span/0`](#end_span0)
-    - [`log/1`](#log1)
-    - [`tag/2`](#tag2)
-    - [`link_to_pid/1`](#link_to_pid1)
-  - [Contributing](#contributing)
+- [Plug](#plug)
+- [Module overview and functions](#module-overview-and-functions)
+- [Contributing](#contributing)
+- [Code of conduct \(CoC\)](#code-of-conduct-coc)
+- [About SumUp](#about-sumup)
 
 <!-- /MarkdownTOC -->
 
@@ -34,15 +28,23 @@ Opentracing for elixir applications.
 <a id="quick-start"></a>
 ## Quick start
 
-Example usage for Phoenix app
+```elixir
+# See "Configuration" section
+Ot.start_link(config)
+
+# See "Module overview and functions" section
+Ot.start_span("my-test-span", nil)  # <- span is initialized
+Ot.tag("my-tag", "tag-value")       #
+Ot.log("log message")               #
+Ot.end_span()                       # <- span will be sent to jaeger
+```
+
+Example usage in a Phoenix app
 
 In `mix.exs`:
 
 ```elixir
 defp deps do
-  #
-  # use the latest tag in https://github.com/sumup-oss/ot/tags
-  #
   [{:ot, git: "git@github.com:sumup-oss/ot.git", tag: "v1.0.0"}]
 end
 ```
@@ -50,11 +52,13 @@ end
 In `config/dev.exs`:
 
 ```elixir
-config :ot,
+# See "Configuration" section
+config :my_app, :ot_config,
   service_name: "my-app",
   collectors: [
     jaeger: [
       url: "http://127.0.0.1:9411/api/v2/spans",
+      adapter: Tesla.Adapter.Hackney,
       stringify_tags: true
     ]
   ]
@@ -66,25 +70,35 @@ In `application.ex`:
 defmodule MyApp.Application do
   def start(_type, _args) do
     children = [
-      Ot,
-      # ...
+      {Ot, Application.fetch_env!(:my_app, :ot_config)}
+      # ... other children
 ```
 
 In `endpoint.ex`:
 
 ```elixir
 defmodule MyAppWeb.Endpoint do
-  plug Ot.Plug, paths: ["/v0.1/*"]
-end
+  use Phoenix.Endpoint, otp_app: :my_app
+
+  # See "Plug" section
+  plug Ot.Plug
+
+  # ... other plugs
 ```
 
 <a id="configuration"></a>
 ### Configuration
 
+Example with all supported configuration options:
+
 ```elixir
-config :ot,
-  service_name: "my-app",    # (required)
-  ignored_exceptions: [      # (optional) don't set "error=true" for these
+# Tesla adapter to use in collectors (can be different for each collector)
+# If you use this one, you must add :hackney to your deps
+adapter = {Tesla.Adapter.Hackney, connect_timeout: 5000, recv_timeout: 5000}
+
+ot_config = [
+  service_name: "my-app",       # (required)
+  ignored_exceptions: [         # (optional) don't set "error=true" for these
     Phoenix.Router.NoRouteError
   ],
   plug: [                                      # (optional) config for Ot.Plug
@@ -97,14 +111,16 @@ config :ot,
   ],
   collectors: [
     jaeger: [
-      url: "...",            # (required) span endpoint (Zipkin JSON v2 format)
-      flush_interval: 500,   # (optional) buffer flush interval in ms; default: 1000
-      flush_retries: 1,      # (optional) flush retry attempts; default: 5 *
-      stringify_tags: true,  # (optional) convert tag values to strings (required for jaeger)
-      middlewares: []        # (optional) Tesla middlewares; default: []
+      url: "...",               # (required) span endpoint (Zipkin JSON v2 format)
+      adapter: tesla_adapter,   # (required) tesla adapter to use
+      flush_interval: 500,      # (optional) buffer flush interval in ms; default: 1000
+      flush_retries: 1,         # (optional) flush retry attempts; default: 5 *
+      stringify_tags: true,     # (optional) convert tag values to strings (required for jaeger)
+      middlewares: []           # (optional) Tesla middlewares; default: []
     ],
     newrelic: [
       url: "https://trace-api.newrelic.com/trace/v1",
+      adapter: tesla_adapter,
       middlewares: [
         Tesla.Middleware.Logger,
         {Tesla.Middleware.Headers, [
@@ -115,125 +131,88 @@ config :ot,
       ]
     ]
   ]
+]
 ```
 
-\* tracing data is stored in a local buffer and sent to the tracing backends (jaeger, zipkin, etc.) in a batch, every X ms. On failure, the buffer is preserved and continues to accumulate spans till the next flush (retry). If the retry limit is exceeded, the buffer is discarded to prevent memory leaks.
+\* tracing data is stored in a local buffer and sent to the tracing backends
+(jaeger, zipkin, etc.) in a batch, every X ms. On failure, the buffer is
+preserved and continues to accumulate spans till the next flush (retry).
+If the retry limit is exceeded, the buffer is discarded to prevent memory leaks.
 
-<a id="module-overview"></a>
-## Module overview
+<a id="plug"></a>
+## Plug
 
-* `Ot` - main module and supervisor; delegates most function calls to `Ot.Dispatcher`
-* `Ot.Span` - a [span](https://opentracing.io/docs/overview/spans/) represented by a struct
-* `Ot.Dispatcher` - an in-memory storage for open spans. Closed spans are sent to collector clients
-* `Ot.Client` - an HTTP client for span collectors (eg. jaeger). Sends buffered spans to the collector every X msec
-* `Ot.Plug` - a [plug](https://hexdocs.pm/phoenix/1.5.6/plug.html) for your app to trace incoming HTTP requests
-* `Ot.TeslaMiddleware` - a [tesla middleware](https://hexdocs.pm/tesla/1.4.0/Tesla.Middleware.html) for your app's Tesla HTTP clients to trace external HTTP calls
+Web applications can use `Ot.Plug` to automatically have a span created for each incoming request.
 
-<a id="ot-functions"></a>
-## `Ot` functions
+Let's take a simple ping-pong web app and try this simple request:
 
-The main module `Ot` supervises the `Ot.Dispatcher` (GenServer) and `Ot.Client` (GenServer, one for each collector)
+```bash
+curl 'http://localhost:4000/v0.1/ping?player=just_me'
+```
 
-It delegates function calls to a `GenServer` which keeps state in a map of `<pid> => [<span>, <span>, ...]`.
-
-All spans created by an Erlang process are implicitly closed when that process exits (see [`link_to_pid/1`](#link_to_pid1))
-
-<a id="stacks0"></a>
-#### `stacks/0`
-Returns the current state (map of `<pid>` => `[span, ...])`.
-
-<a id="start_span1"></a>
-#### `start_span/1`
-Start a new span with the given name. The span is a child of the current process's active span.
-
-<a id="start_span2"></a>
-#### `start_span/2`
-Same as `start_span/1`, but with explicit parent.
-
-When there is no parent (ie. this is the trace entrypoint), an explicit `nil` is required as the parent:
+The controller:
 
 ```elixir
-# A span without a parent (starts a new trace):
-Ot.start_span("span-a", nil)
-Ot.log("log msg#1")
-parent_span = Ot.current_span()
-
-Task.async(fn ->
-  # A span with a parent (adds it to the same trace):
-  Ot.start_span("span-b", parent_span)
-  Ot.log("log msg#2")
-)
-
-Ot.log("log msg#3")
+def MyAppWeb.MyController do
+  def ping(conn, params) do
+    Ot.tag("opponent", params["player"])
+    send_resp(conn, 200, "pong")
+  end
+end
 ```
 
-In the example above, `span-b` is the child of `span-a`
+will produce this span, sent to the collector(s):
 
-`log msg#1` and `log msg#3` are linked to `span-a`, and `log msg#2` - to `span-b`
-
-
-<a id="current_span0"></a>
-#### `current_span/0`
-Returns the currently active span for the current process. Calls to `log/1` and `tag/2` will default to it, as will `start_span/1`.
-
-<a id="end_span0"></a>
-#### `end_span/0`
-End the currently active span in the process.
-
-This call is optional, because when a process exits, all its opened spans are automatically closed.
-
-Eg. for a typical Phoenix application, incoming requests are served by individual Cowboy processes which die shortly after the response is sent.
-
-
-<a id="log1"></a>
-#### `log/1`
-Attach the given string as log message to the currently active span.
-
-```elixir
-Ot.log("free text")
+```json
+{
+  "annotations": [],
+  "duration": 1375,
+  "id": "d98f95a2d087a665",
+  "kind": "SERVER",
+  "localEndpoint":
+  {
+    "ipv4": "127.0.0.1",
+    "port": 0,
+    "serviceName": "my-app"
+  },
+  "name": "request",
+  "parentId": null,
+  "tags":
+  {
+    "component": "my-app",
+    "author": "just_me",
+    "http.method": "GET",
+    "http.path": "/v0.1/ping",
+    "http.query_string": "player=just_me",
+    "http.status_code": "200"
+  },
+  "timestamp": 1628150108323753,
+  "traceId": "0a922fbb7df193916b283610bcc516ff"
+}
 ```
 
-<a id="tag2"></a>
-#### `tag/2`
-Tag the currently active span with the given `key` and `value`.
+Note that the values of `ipv4` and `port` are hard-coded (could be made configurable in a later release).
 
-```elixir
-Ot.tag("transaction-id", "d4bfb871-e42d-42ff-bd6c-8aa6f69f3d91")
-```
+<a id="module-overview-and-functions"></a>
+## Module overview and functions
 
-<a id="link_to_pid1"></a>
-#### `link_to_pid/1`
-Manually links spans to processes.
-
-By default, each erlang process requires a separate span. If you don't want that, use this function:
-
-```elixir
-Ot.log("log msg#1")
-parent_pid = self()
-
-Task.async(fn ->
-  # Use the span of another process
-  Ot.link_to_pid(parent_pid)
-  Ot.log("log msg#2")
-)
-
-Ot.log("log msg#3")
-```
-
-In the example above, all 3 log messages will be linked to the same span.
-
-***NOTE***: when a linked pid is terminated, no spans will be closed (they will be closed when the original pid exits). In the example above, when the async `Task` finishes, the span will remain as long as `parent_pid` is alive.
+Check out the [Module overview](./doc/overview.md) docs.
 
 <a id="contributing"></a>
-### Contributing
+## Contributing
 
-Contributions are welcome! This project still supports only a small subset of the features a full-blown opentracing client needs, but with your help it can become better :)
+Check out [CONTRIBUTING.md](./CONTRIBUTING.md)
 
-If you spot an issue with the current functionality, please open an [issue](https://github.com/sumup-oss/ot/issues)
+<a id="code-of-conduct-coc"></a>
+## Code of conduct (CoC)
 
-If you'd like some new functionality, feel free to make a contribution to the project:
+We want to foster an inclusive and friendly community around our Open Source efforts. Like all SumUp Open Source projects, this project follows the Contributor Covenant Code of Conduct. Please, [read it and follow it](CODE_OF_CONDUCT.md).
 
-1. Fork it
-1. Write your code, format it using `mix format`
-1. Tests are recommended, but not mandatory
-1. Submit a pull request
+If you feel another member of the community violated our CoC or you are experiencing problems participating in our community because of another individual's behavior, please get in touch with our maintainers. We will enforce the CoC.
+
+<a id="about-sumup"></a>
+## About SumUp
+
+![SumUp logo](https://raw.githubusercontent.com/sumup-oss/assets/master/sumup-logo.svg?sanitize=true)
+
+It is our mission to make easy and fast card payments a reality across the *entire* world. You can pay with SumUp in more than 30 countries, already. Our engineers work in Berlin, Cologne, Sofia and Sāo Paulo. They write code in JavaScript, Swift, Ruby, Go, Java, Erlang, Elixir and more. Want to come work with us? [Head to our careers page](https://sumup.com/careers) to find out more.

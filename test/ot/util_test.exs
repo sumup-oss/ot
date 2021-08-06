@@ -11,17 +11,24 @@
 # limitations under the License.
 #
 
-defmodule Ot.Util do
-  def gen_id(bytes) do
-    bytes
-    |> :crypto.strong_rand_bytes()
-    |> Base.encode16(case: :lower)
+defmodule Ot.UtilTest do
+  alias Ot.Util
+  use ExUnit.Case
+
+  test "gen_id/1" do
+    # 8 bytes, base16 encoded (4 bits/char) => 16 chars
+    assert <<id1::binary-size(16)>> = Util.gen_id(8)
+    assert <<id2::binary-size(16)>> = Util.gen_id(8)
+    assert id1 !== id2
   end
 
-  def timestamp(unit \\ :microsecond),
-    do: System.os_time(unit)
+  test "truncate/1" do
+    assert Util.truncate(nil) == ""
 
-  def truncate(nil), do: ""
-  def truncate(msg) when not is_bitstring(msg), do: truncate(inspect(msg))
-  def truncate(msg), do: String.slice(msg, 0, 1000)
+    ok_string = String.duplicate("a", 1000)
+    long_string = ok_string <> "a"
+
+    assert Util.truncate(ok_string) == ok_string
+    assert Util.truncate(long_string) == ok_string
+  end
 end

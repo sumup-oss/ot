@@ -33,20 +33,23 @@ defmodule Ot.Dispatcher do
 
   @impl true
   def handle_call({caller_trace, logger_md, msg}, from, state) do
-    Ot.Util.with_logger_metadata(logger_md, fn ->
-      try do
-        _handle_call(msg, from, state)
-      rescue
-        e ->
-          msg =
-            Exception.format(:error, e, __STACKTRACE__) <>
-              "Caller stack:\n" <>
-              Exception.format_stacktrace(caller_trace)
+    old_md = Logger.metadata()
 
-          Logger.error(msg)
-          {:reply, :error, state}
-      end
-    end)
+    try do
+      Logger.metadata(logger_md)
+      _handle_call(msg, from, state)
+    rescue
+      e ->
+        msg =
+          Exception.format(:error, e, __STACKTRACE__) <>
+            "Caller stack:\n" <>
+            Exception.format_stacktrace(caller_trace)
+
+        Logger.error(msg)
+        {:reply, :error, state}
+    after
+      Logger.metadata(old_md)
+    end
   end
 
   #

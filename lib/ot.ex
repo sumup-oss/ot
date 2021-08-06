@@ -53,9 +53,9 @@ defmodule Ot do
   @impl true
   # On shutdown, first terminate Dispatcher, then the Client
   # (to ensure all spans are finalized *and then* flushed)
-  def init(_) do
-    clients = client_specs()
-    children = clients ++ [dispatcher_spec(clients)] ++ plug_specs()
+  def init(config) do
+    clients = client_specs(config)
+    children = clients ++ [dispatcher_spec(config, clients)] ++ plug_specs(config)
     Supervisor.init(children, strategy: :one_for_one)
   end
 
@@ -63,23 +63,23 @@ defmodule Ot do
   # private
   #
 
-  def client_specs do
-    for {cname, copts} <- Application.fetch_env!(:ot, :collectors) do
+  def client_specs(config) do
+    for {cname, copts} <- Keyword.fetch!(config, :collectors) do
       copts = Keyword.put(copts, :id, :"ot.client.#{cname}")
       Supervisor.child_spec({Ot.Client, copts}, id: copts[:id])
     end
   end
 
-  def dispatcher_spec(clients) do
+  def dispatcher_spec(config, clients) do
     {Ot.Dispatcher,
-     service_name: Application.fetch_env!(:ot, :service_name),
+     service_name: Keyword.fetch!(config, :service_name),
      clients: Enum.map(clients, & &1.id),
-     ignored_exceptions: Application.get_env(:ot, :ignored_exceptions, [])}
+     ignored_exceptions: Keyword.get(config, :ignored_exceptions, [])}
   end
 
   if Code.ensure_loaded?(Plug) do
-    def plug_specs(), do: [{Ot.Plug, Application.get_env(:ot, :plug, [])}]
+    def plug_specs(config), do: [{Ot.Plug, Keyword.get(config, :plug, [])}]
   else
-    def plug_specs(), do: []
+    def plug_specs(_config), do: []
   end
 end

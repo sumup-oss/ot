@@ -75,13 +75,11 @@ defmodule Ot.Span do
     }
   end
 
-  def kind(nil), do: nil
-  def kind("SERVER"), do: "SERVER"
-  def kind("CLIENT"), do: "CLIENT"
-  def kind("PRODUCER"), do: "PRODUCER"
-  def kind("CONSUMER"), do: "CONSUMER"
+  def kind(span, nil),
+    do: span
 
-  def kind(span, value), do: %{span | kind: kind(value)}
+  def kind(span, value) when value in ["SERVER", "CLIENT", "PRODUCER", "CONSUMER"],
+    do: %{span | kind: value}
 
   def annotate(span, nil), do: span
 
