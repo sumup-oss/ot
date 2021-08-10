@@ -14,13 +14,29 @@
 defmodule Ot.MixProject do
   use Mix.Project
 
+  @version "3.0.0"
+  @description "Opentracing support for Elixir applications."
+
   def project do
     [
       app: :ot,
-      version: "2.1.4",
+      version: @version,
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      package: package(),
+      description: @description,
+      name: "Ot"
+    ]
+  end
+
+  defp package() do
+    [
+      licenses: ["Apache-2.0"],
+      maintainers: ["Simeon Manolov"],
+      name: "ot",
+      links: %{"GitHub" => "https://github.com/sumup-oss/ot"},
+      files: ~w(lib mix.exs README.md LICENSE .formatter.exs)
     ]
   end
 
@@ -36,7 +52,8 @@ defmodule Ot.MixProject do
     [
       {:plug, ">= 0.0.0", optional: true},
       {:jason, ">= 0.0.0"},
-      {:tesla, ">= 0.0.0"}
+      {:tesla, ">= 0.0.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 end

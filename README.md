@@ -34,7 +34,7 @@ Add this line to your `mix.exs`:
 
 ```elixir
 defp deps do
-  [{:ot, git: "git@github.com:sumup-oss/ot.git", tag: "v1.0.0"}]
+  [{:ot, "~> 3.0"}]
 end
 ```
 
