@@ -9,6 +9,7 @@ Opentracing for elixir applications.
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quick start](#quick-start)
+    - [Example usage in a Phoenix app](#example-usage-in-a-phoenix-app)
   - [Configuration](#configuration)
 - [Plug](#plug)
 - [Module overview and functions](#module-overview-and-functions)
@@ -22,8 +23,8 @@ Opentracing for elixir applications.
 ## Prerequisites
 
 1. You will need a general understanding of opentracing's concepts. You can find a good starting point [here](https://opentracing.io/docs/overview/)
-1. [install](https://elixir-lang.org/install.html) Elixir v1.9 or higher
-1. This project depends on [tesla]. Check out their [documentation](https://github.com/teamon/tesla) to learn more about Tesla and how middlewares work there.
+1. [Install](https://elixir-lang.org/install.html) Elixir v1.9 or higher
+1. This project depends on [tesla](https://github.com/teamon/tesla). Check out their [documentation](https://github.com/teamon/tesla) to learn more about Tesla and how middlewares work there.
 1. Throughout the examples of this readme we have used excerpts of a sample [Phoenix](https://phoenixframework.org/) web app, it is a good idea to get familiar with it first.
 
 <a id="installation"></a>
@@ -53,7 +54,8 @@ Ot.log("log message")               #
 Ot.end_span()                       # <- span will be sent to jaeger
 ```
 
-Example usage in a Phoenix app
+<a id="example-usage-in-a-phoenix-app"></a>
+#### Example usage in a Phoenix app
 
 In `config/dev.exs`:
 
@@ -202,7 +204,7 @@ Note that the values of `ipv4` and `port` are hard-coded (could be made configur
 <a id="module-overview-and-functions"></a>
 ## Module overview and functions
 
-Check out the [Module overview](./doc/overview.md) docs.
+Check out the [Module overview](./doc/module_overview.md) docs.
 
 <a id="contributing"></a>
 ## Contributing
