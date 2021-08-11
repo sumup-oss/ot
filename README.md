@@ -4,6 +4,9 @@
 
 Opentracing for elixir applications.
 
+Plug into your app via just a few lines of code, orchestrate span trees and send them to Jaeger, Zipkin, NewRelic, or any other tracing system.
+
+
 <!-- MarkdownTOC -->
 
 - [Prerequisites](#prerequisites)
@@ -204,7 +207,7 @@ Note that the values of `ipv4` and `port` are hard-coded (could be made configur
 <a id="module-overview-and-functions"></a>
 ## Module overview and functions
 
-Check out the [Module overview](./doc/module_overview.md) docs.
+Check out the [Module overview](./docs/module_overview.md) docs.
 
 <a id="contributing"></a>
 ## Contributing
