@@ -139,11 +139,11 @@ defmodule Ot.Client do
         :ok
 
       {:ok, %{status: s, body: b}} = env when is_integer(s) ->
-        Logger.warn("Flush failed: the server replied with status #{s}. Resp body: #{b}")
+        Logger.warning("Flush failed: the server replied with status #{s}. Resp body: #{b}")
         {:warn, env}
 
       other ->
-        Logger.warn("Flush failed: #{inspect(other)}")
+        Logger.warning("Flush failed: #{inspect(other)}")
         {:warn, other}
     end
   end

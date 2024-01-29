@@ -11,7 +11,7 @@
 # limitations under the License.
 #
 
-use Mix.Config
+import Config
 
 config :ot,
   service_name: "ot-dev"

@@ -11,4 +11,4 @@
 # limitations under the License.
 #
 
-use Mix.Config
+import Config
