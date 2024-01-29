@@ -26,7 +26,7 @@ defmodule Ot.Dispatcher do
   #
   def call(args) do
     {_, caller_trace} = Process.info(self(), :current_stacktrace)
-    caller_trace = Enum.slice(caller_trace, 2..-1)
+    caller_trace = Enum.slice(caller_trace, 2..-1//1)
     logger_md = Logger.metadata()
     GenServer.call(__MODULE__, {caller_trace, logger_md, args}, :infinity)
   end
